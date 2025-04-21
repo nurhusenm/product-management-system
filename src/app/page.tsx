@@ -1,11 +1,8 @@
-// import { getPosts } from '../../actions/postAction'
-import {getCollection } from '../lib/db'
-
-export default async function Home() {
-  const res = await getCollection("users");
-
-  console.log(res)
+export default function Home() {
   return (
-<div>Hello Nur</div>
+    <div className="flex items-center justify-center min-h-screen">
+      <h1 className="text-4xl font-bold text-blue-600">Welcome to Inventory MVP!</h1>
+     
+    </div>
   );
 }
