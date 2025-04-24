@@ -1,59 +1,63 @@
-import { NextResponse } from "next/server";
-import connectToDatabase from "@/lib/db";
-import Product from "@/models/product";
+import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import Product from "../../../models/product";
+import  connectToDatabase  from "../../../lib/db";
 
-// Create a product
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Verify JWT
+    await connectToDatabase();
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authorization header missing" },
+        { status: 401 }
+      );
     }
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "mohnur") as {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as {
       userId: string;
       tenantId: string;
     };
-
-    await connectToDatabase();
     const body = await request.json();
-    const { name, sku, description, cost, price, quantity } = body;
-
-    if (!name || !sku || cost == null || price == null || quantity == null) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const { name, sku, cost, price, quantity, category } = body;
+    if (!name || !sku || !cost || !price || !quantity || !category) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
-
-    const existingProduct = await Product.findOne({ sku, tenantId: decoded.tenantId });
-    if (existingProduct) {
-      return NextResponse.json({ error: "Product with this SKU already exists" }, { status: 400 });
-    }
-
     const product = new Product({
       tenantId: decoded.tenantId,
       name,
       sku,
-      description,
       cost,
       price,
       quantity,
+      category,
     });
     await product.save();
-
-    return NextResponse.json({ message: "Product created", product }, { status: 201 });
+    return NextResponse.json(
+      { message: "Product created", product },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Product creation error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 
-// Get all products for a tenant
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    await connectToDatabase();
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authorization header missing" },
+        { status: 401 }
+      );
     }
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as {
@@ -61,11 +65,34 @@ export async function GET(request: Request) {
       tenantId: string;
     };
 
-    await connectToDatabase();
-    const products = await Product.find({ tenantId: decoded.tenantId });
-    return NextResponse.json({ products });
+    // Get query parameters for filtering
+    const searchParams = request.nextUrl.searchParams;
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
+    const sortBy = searchParams.get('sortBy') || 'name';
+    const sortOrder = searchParams.get('sortOrder') || 'asc';
+
+    // Build filter object
+    const filter: any = { tenantId: decoded.tenantId };
+    if (category) filter.category = category;
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { sku: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Build sort object
+    const sort: any = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const products = await Product.find(filter).sort(sort);
+    return NextResponse.json(products, { status: 200 });
   } catch (error) {
     console.error("Product fetch error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
