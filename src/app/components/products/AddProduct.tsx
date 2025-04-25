@@ -4,9 +4,11 @@ import { useState } from "react";
 
 interface AddProductProps {
   onProductAdded: () => void;
+  existingCategories: string[];
+  onAddCategory: (newCategory: string) => void;
 }
 
-export default function AddProduct({ onProductAdded }: AddProductProps) {
+export default function AddProduct({ onProductAdded, existingCategories, onAddCategory }: AddProductProps) {
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
@@ -16,8 +18,8 @@ export default function AddProduct({ onProductAdded }: AddProductProps) {
     category: "",
   });
   const [message, setMessage] = useState("");
-
-  const categories = ["Electronics", "Clothing", "Books", "Other"];
+  const [newCategory, setNewCategory] = useState("");
+  const [showAddCategory, setShowAddCategory] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +61,15 @@ export default function AddProduct({ onProductAdded }: AddProductProps) {
       }
     } catch (error) {
       setMessage("An error occurred");
+    }
+  };
+
+  const handleAddCategory = () => {
+    if (newCategory.trim()) {
+      onAddCategory(newCategory.trim());
+      setFormData({ ...formData, category: newCategory.trim() });
+      setShowAddCategory(false);
+      setNewCategory("");
     }
   };
 
@@ -111,22 +122,59 @@ export default function AddProduct({ onProductAdded }: AddProductProps) {
           className="p-2 border rounded"
           required
         />
-        <select
-          value={formData.category}
-          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-          className="p-2 border rounded"
-          required
-        >
-          <option value="" disabled>
-            Select Category
-          </option>
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
+        <div className="flex gap-2">
+          <select
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            className="p-2 border rounded flex-grow"
+            required
+          >
+            <option value="" disabled>
+              Select Category
             </option>
-          ))}
-        </select>
+            {existingCategories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setShowAddCategory(true)}
+            className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            New
+          </button>
+        </div>
       </div>
+      {showAddCategory && (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Enter new category"
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            className="p-2 border rounded"
+          />
+          <button
+            type="button"
+            onClick={handleAddCategory}
+            className="p-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Add
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowAddCategory(false);
+              setNewCategory("");
+            }}
+            className="p-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
       <button type="submit" className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600">
         Add Product
       </button>

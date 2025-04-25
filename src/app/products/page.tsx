@@ -29,6 +29,7 @@ export default function ProductsPage() {
     priceFilter: "all",
     dateFilter: "all",
   });
+  const [categories, setCategories] = useState<string[]>([]);
   const router = useRouter();
 
   // Fetch products on mount
@@ -49,6 +50,11 @@ export default function ProductsPage() {
       const data = await res.json();
       if (res.ok) {
         setProducts(data || []);
+        // Update categories whenever products change
+        const uniqueCategories = Array.from(
+          new Set(data.map((product: Product) => product.category))
+        ) as string[];
+        setCategories(uniqueCategories);
       } else {
         setMessage(data.error || "Failed to fetch products");
       }
@@ -80,8 +86,11 @@ export default function ProductsPage() {
     }
   };
 
-  // Get unique categories from products
-  const categories = Array.from(new Set(products.map(product => product.category)));
+  const handleAddCategory = (newCategory: string) => {
+    if (newCategory && !categories.includes(newCategory)) {
+      setCategories([...categories, newCategory]);
+    }
+  };
 
   // Filter products based on selected filters
   const filteredProducts = products
@@ -128,8 +137,13 @@ export default function ProductsPage() {
       <ProductFilters 
         onFilterChange={setFilters} 
         existingCategories={categories}
+        onAddCategory={handleAddCategory}
       />
-      <AddProduct onProductAdded={() => fetchProducts(localStorage.getItem("token") || "")} />
+      <AddProduct 
+        onProductAdded={() => fetchProducts(localStorage.getItem("token") || "")}
+        existingCategories={categories}
+        onAddCategory={handleAddCategory}
+      />
 
       {editingProduct ? (
         <EditProduct

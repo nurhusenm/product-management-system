@@ -10,9 +10,10 @@ interface ProductFiltersProps {
     dateFilter: string;
   }) => void;
   existingCategories: string[];
+  onAddCategory: (newCategory: string) => void;
 }
 
-export default function ProductFilters({ onFilterChange, existingCategories }: ProductFiltersProps) {
+export default function ProductFilters({ onFilterChange, existingCategories, onAddCategory }: ProductFiltersProps) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [priceFilter, setPriceFilter] = useState("all");
@@ -31,8 +32,7 @@ export default function ProductFilters({ onFilterChange, existingCategories }: P
 
   const handleAddCategory = () => {
     if (newCategory.trim()) {
-      // Here you would typically make an API call to add the category
-      // For now, we'll just close the input
+      onAddCategory(newCategory.trim());
       setShowAddCategory(false);
       setNewCategory("");
     }
@@ -67,12 +67,12 @@ export default function ProductFilters({ onFilterChange, existingCategories }: P
               </option>
             ))}
           </select>
-          <button
+        {/* <button
             onClick={() => setShowAddCategory(true)}
             className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Add Category
-          </button>
+          </button>   */}
         </div>
         <select
           value={priceFilter}
