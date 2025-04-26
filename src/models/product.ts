@@ -1,5 +1,9 @@
-// src/models/Product.ts
 import mongoose from "mongoose";
+
+// Clear the cached model (optional, only needed if schema changed)
+if (mongoose.models.Product) {
+  delete mongoose.models.Product;
+}
 
 const productSchema = new mongoose.Schema({
   tenantId: { type: String, required: true },
@@ -8,13 +12,14 @@ const productSchema = new mongoose.Schema({
   cost: { type: Number, required: true },
   price: { type: Number, required: true },
   quantity: { type: Number, required: true },
-  category: {
-    type: String,
-    required: true, // Mandatory
-    enum: ["Electronics", "Clothing", "Books", "Other"], // Predefined categories
-  },
+ category: { type: String, required: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
+
+ 
+  
+
+
 });
 
 export default mongoose.models.Product || mongoose.model("Product", productSchema);

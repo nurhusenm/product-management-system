@@ -46,11 +46,11 @@ export default function ProductList({ products, onEdit, onDelete }: ProductListP
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map((product) => (
             <div key={product._id} className="border p-4 rounded shadow">
-              <h3 className="font-semibold">{product.name}</h3>
-              <p>SKU: {product.sku}</p>
-              <p>Category: {product.category}</p>
-              <p>Price: ${product.price}</p>
-              <p>Quantity: {product.quantity}</p>
+              <h3 className="font-semibold text-black">{product.name}</h3>
+              <p className="text-black">SKU: {product.sku}</p>
+              <p className="text-black">Category: {product.category}</p>
+              <p className="text-black">Price: ${product.price}</p>
+              <p className="text-black">Quantity: {product.quantity}</p>
               <p className="text-sm text-gray-500">
                 Added: {new Date(product.createdAt).toLocaleDateString()}
               </p>

@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import Product from "../../../models/product";
 import  connectToDatabase  from "../../../lib/db";
 
+
 export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
@@ -18,14 +19,10 @@ export async function POST(request: NextRequest) {
       userId: string;
       tenantId: string;
     };
+
     const body = await request.json();
     const { name, sku, cost, price, quantity, category } = body;
-    if (!name || !sku || !cost || !price || !quantity || !category) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
+
     const product = new Product({
       tenantId: decoded.tenantId,
       name,
@@ -33,13 +30,11 @@ export async function POST(request: NextRequest) {
       cost,
       price,
       quantity,
-      category,
+      category, // Should accept any string
     });
+
     await product.save();
-    return NextResponse.json(
-      { message: "Product created", product },
-      { status: 201 }
-    );
+    return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error("Product creation error:", error);
     return NextResponse.json(
@@ -96,3 +91,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+
+

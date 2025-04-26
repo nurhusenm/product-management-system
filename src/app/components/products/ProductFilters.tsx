@@ -11,15 +11,22 @@ interface ProductFiltersProps {
   }) => void;
   existingCategories: string[];
   onAddCategory: (newCategory: string) => void;
+  onDeleteCategory: (category: string) => void;
 }
 
-export default function ProductFilters({ onFilterChange, existingCategories, onAddCategory }: ProductFiltersProps) {
+export default function ProductFilters({ 
+  onFilterChange, 
+  existingCategories, 
+  onAddCategory,
+  onDeleteCategory 
+}: ProductFiltersProps) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [priceFilter, setPriceFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [newCategory, setNewCategory] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   const handleFilterChange = () => {
     onFilterChange({
@@ -35,6 +42,14 @@ export default function ProductFilters({ onFilterChange, existingCategories, onA
       onAddCategory(newCategory.trim());
       setShowAddCategory(false);
       setNewCategory("");
+    }
+  };
+
+  const handleDeleteCategory = (category: string) => {
+    onDeleteCategory(category);
+    if (filterCategory === category) {
+      setFilterCategory("All");
+      handleFilterChange();
     }
   };
 
@@ -67,12 +82,12 @@ export default function ProductFilters({ onFilterChange, existingCategories, onA
               </option>
             ))}
           </select>
-        {/* <button
+          <button
             onClick={() => setShowAddCategory(true)}
             className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Add Category
-          </button>   */}
+          </button>
         </div>
         <select
           value={priceFilter}
@@ -126,6 +141,29 @@ export default function ProductFilters({ onFilterChange, existingCategories, onA
           </button>
         </div>
       )}
+
+      <div className="flex flex-wrap gap-2">
+        {existingCategories.map((category) => (
+          <div
+            key={category}
+            className="relative group"
+            onMouseEnter={() => setHoveredCategory(category)}
+            onMouseLeave={() => setHoveredCategory(null)}
+          >
+            <span className="px-3 py-1 bg-gray-200 rounded-full text-sm">
+              {category}
+            </span>
+            {hoveredCategory === category && (
+              <button
+                onClick={() => handleDeleteCategory(category)}
+                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 } 

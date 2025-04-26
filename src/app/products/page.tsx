@@ -23,13 +23,13 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [message, setMessage] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [filters, setFilters] = useState({
     category: "All",
     searchTerm: "",
     priceFilter: "all",
     dateFilter: "all",
   });
-  const [categories, setCategories] = useState<string[]>([]);
   const router = useRouter();
 
   // Fetch products on mount
@@ -44,11 +44,27 @@ export default function ProductsPage() {
 
   const fetchProducts = async (token: string) => {
     try {
-      const res = await fetch("/api/products", {
-        headers: { Authorization: `Bearer ${token}` },
+      let url = "/api/products?";
+      if (filters.category !== "All") {
+        url += `category=${encodeURIComponent(filters.category)}&`;
+      }
+      if (filters.searchTerm) {
+        url += `search=${encodeURIComponent(filters.searchTerm)}&`;
+      }
+      if (filters.priceFilter !== "all") {
+        url += `sortBy=price&sortOrder=${filters.priceFilter === "highest" ? "desc" : "asc"}&`;
+      }
+      if (filters.dateFilter !== "all") {
+        url += `sortBy=createdAt&sortOrder=${filters.dateFilter === "recent" ? "desc" : "asc"}&`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await response.json();
+      if (response.ok) {
         setProducts(data || []);
         // Update categories whenever products change
         const uniqueCategories = Array.from(
@@ -86,44 +102,47 @@ export default function ProductsPage() {
     }
   };
 
-  const handleAddCategory = (newCategory: string) => {
-    if (newCategory && !categories.includes(newCategory)) {
-      setCategories([...categories, newCategory]);
+  const handleAddCategory = async (newCategory: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: newCategory }),
+      });
+
+      if (response.ok) {
+        fetchProducts(token);
+      }
+    } catch (error) {
+      console.error("Error adding category:", error);
     }
   };
 
-  // Filter products based on selected filters
-  const filteredProducts = products
-    .filter((product) => {
-      // Category filter
-      if (filters.category !== "All" && product.category !== filters.category) {
-        return false;
+  const handleDeleteCategory = async (category: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch(`/api/categories?name=${encodeURIComponent(category)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchProducts(token);
       }
-      // Search filter
-      if (
-        filters.searchTerm &&
-        !product.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) &&
-        !product.sku.toLowerCase().includes(filters.searchTerm.toLowerCase())
-      ) {
-        return false;
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      // Date filter
-      if (filters.dateFilter === "recent") {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      } else if (filters.dateFilter === "old") {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      }
-      // Price filter
-      if (filters.priceFilter === "highest") {
-        return b.price - a.price;
-      } else if (filters.priceFilter === "lowest") {
-        return a.price - b.price;
-      }
-      return 0;
-    });
+    } catch (error) {
+      console.error("Error deleting category:", error);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto mt-10 p-4">
@@ -138,6 +157,7 @@ export default function ProductsPage() {
         onFilterChange={setFilters} 
         existingCategories={categories}
         onAddCategory={handleAddCategory}
+        onDeleteCategory={handleDeleteCategory}
       />
       <AddProduct 
         onProductAdded={() => fetchProducts(localStorage.getItem("token") || "")}
@@ -156,7 +176,7 @@ export default function ProductsPage() {
         />
       ) : (
         <ProductList
-          products={filteredProducts}
+          products={products}
           onEdit={setEditingProduct}
           onDelete={handleDelete}
         />
