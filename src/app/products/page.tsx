@@ -24,6 +24,7 @@ export default function ProductsPage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [message, setMessage] = useState("");
+  const [showDeleteMessage, setShowDeleteMessage] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [filters, setFilters] = useState({
     category: "All",
@@ -114,7 +115,7 @@ export default function ProductsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        setMessage("Product deleted successfully");
+        setShowDeleteMessage(true);
         fetchProducts(token);
       } else {
         const data = await res.json();
@@ -125,13 +126,29 @@ export default function ProductsPage() {
     }
   };
 
+  useEffect(() => {
+    if (showDeleteMessage) {
+      const timer = setTimeout(() => setShowDeleteMessage(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showDeleteMessage]);
+
   return (
     <div className="max-w-4xl mx-auto mt-10 p-4">
       <h1 className="text-2xl font-bold mb-4">Products</h1>
-      {message && (
-        <p className={message.includes("successfully") ? "text-green-500" : "text-red-500"}>
-          {message}
-        </p>
+      {showDeleteMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in-slide-down z-[100]">
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <p>Product deleted successfully!</p>
+        </div>
       )}
 
       <div className="flex items-center mb-6 gap-4">
