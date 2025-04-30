@@ -3,10 +3,9 @@ import jwt from "jsonwebtoken";
 import Product from "../../../../models/product";
 import connectToDatabase from "../../../../lib/db";
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+
+
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
     const authHeader = request.headers.get("authorization");
@@ -21,34 +20,35 @@ export async function PUT(
       userId: string;
       tenantId: string;
     };
+
     const body = await request.json();
     const { name, sku, cost, price, quantity, category } = body;
-    
-    // Make all fields optional for update
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (sku) updateData.sku = sku;
-    if (cost) updateData.cost = cost;
-    if (price) updateData.price = price;
-    if (quantity) updateData.quantity = quantity;
-    if (category) updateData.category = category;
-    updateData.updatedAt = new Date();
+
+    // Await params to resolve the id
+    const { id } = await params;
 
     const product = await Product.findOneAndUpdate(
-      { _id: params.id, tenantId: decoded.tenantId },
-      updateData,
+      { _id: id, tenantId: decoded.tenantId },
+      {
+        name,
+        sku,
+        cost,
+        price,
+        quantity,
+        category,
+        updatedAt: new Date(),
+      },
       { new: true }
     );
+
     if (!product) {
       return NextResponse.json(
         { error: "Product not found" },
         { status: 404 }
       );
     }
-    return NextResponse.json(
-      { message: "Product updated", product },
-      { status: 200 }
-    );
+
+    return NextResponse.json(product, { status: 200 });
   } catch (error) {
     console.error("Product update error:", error);
     return NextResponse.json(

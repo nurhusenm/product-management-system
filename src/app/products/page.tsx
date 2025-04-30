@@ -173,6 +173,7 @@ export default function ProductsPage() {
             setEditingProduct(null);
             fetchProducts(localStorage.getItem("token") || "");
           }}
+          existingCategories={categories}
         />
       ) : (
         <ProductList
