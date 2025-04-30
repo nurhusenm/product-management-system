@@ -21,6 +21,7 @@ interface Product {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [message, setMessage] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
@@ -32,7 +33,6 @@ export default function ProductsPage() {
   });
   const router = useRouter();
 
-  // Fetch products on mount
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -44,20 +44,7 @@ export default function ProductsPage() {
 
   const fetchProducts = async (token: string) => {
     try {
-      let url = "/api/products?";
-      if (filters.category !== "All") {
-        url += `category=${encodeURIComponent(filters.category)}&`;
-      }
-      if (filters.searchTerm) {
-        url += `search=${encodeURIComponent(filters.searchTerm)}&`;
-      }
-      if (filters.priceFilter !== "all") {
-        url += `sortBy=price&sortOrder=${filters.priceFilter === "highest" ? "desc" : "asc"}&`;
-      }
-      if (filters.dateFilter !== "all") {
-        url += `sortBy=createdAt&sortOrder=${filters.dateFilter === "recent" ? "desc" : "asc"}&`;
-      }
-
+      const url = "/api/products";
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -66,7 +53,7 @@ export default function ProductsPage() {
       const data = await response.json();
       if (response.ok) {
         setProducts(data || []);
-        // Update categories whenever products change
+        setFilteredProducts(data || []);
         const uniqueCategories = Array.from(
           new Set(data.map((product: Product) => product.category))
         ) as string[];
@@ -77,6 +64,42 @@ export default function ProductsPage() {
     } catch (error) {
       setMessage("An error occurred");
     }
+  };
+
+  const applyFilters = (newFilters: typeof filters) => {
+    let filtered = [...products];
+
+    if (newFilters.category !== "All") {
+      filtered = filtered.filter((p) => p.category === newFilters.category);
+    }
+
+    if (newFilters.searchTerm) {
+      const term = newFilters.searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (p) => p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term)
+      );
+    }
+
+    if (newFilters.priceFilter !== "all") {
+      filtered.sort((a, b) =>
+        newFilters.priceFilter === "highest" ? b.price - a.price : a.price - b.price
+      );
+    }
+
+    if (newFilters.dateFilter !== "all") {
+      filtered.sort((a, b) =>
+        newFilters.dateFilter === "recent"
+          ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+    }
+
+    setFilteredProducts(filtered);
+  };
+
+  const handleFilterChange = (newFilters: typeof filters) => {
+    setFilters(newFilters);
+    applyFilters(newFilters);
   };
 
   const handleDelete = async (id: string) => {
@@ -102,48 +125,6 @@ export default function ProductsPage() {
     }
   };
 
-  const handleAddCategory = async (newCategory: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch("/api/categories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: newCategory }),
-      });
-
-      if (response.ok) {
-        fetchProducts(token);
-      }
-    } catch (error) {
-      console.error("Error adding category:", error);
-    }
-  };
-
-  const handleDeleteCategory = async (category: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch(`/api/categories?name=${encodeURIComponent(category)}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        fetchProducts(token);
-      }
-    } catch (error) {
-      console.error("Error deleting category:", error);
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto mt-10 p-4">
       <h1 className="text-2xl font-bold mb-4">Products</h1>
@@ -153,17 +134,18 @@ export default function ProductsPage() {
         </p>
       )}
 
-      <ProductFilters 
-        onFilterChange={setFilters} 
-        existingCategories={categories}
-        onAddCategory={handleAddCategory}
-        onDeleteCategory={handleDeleteCategory}
-      />
-      <AddProduct 
-        onProductAdded={() => fetchProducts(localStorage.getItem("token") || "")}
-        existingCategories={categories}
-        onAddCategory={handleAddCategory}
-      />
+      <div className="flex items-center mb-6 gap-4">
+        <div className="flex-1">
+          <ProductFilters
+            onFilterChange={handleFilterChange}
+            existingCategories={categories}
+          />
+        </div>
+        <AddProduct
+          onProductAdded={() => fetchProducts(localStorage.getItem("token") || "")}
+          existingCategories={categories}
+        />
+      </div>
 
       {editingProduct ? (
         <EditProduct
@@ -175,12 +157,14 @@ export default function ProductsPage() {
           }}
           existingCategories={categories}
         />
-      ) : (
+      ) : filteredProducts.length > 0 ? (
         <ProductList
-          products={products}
+          products={filteredProducts}
           onEdit={setEditingProduct}
           onDelete={handleDelete}
         />
+      ) : (
+        <p className="text-gray-500 text-center">No products matched</p>
       )}
     </div>
   );
