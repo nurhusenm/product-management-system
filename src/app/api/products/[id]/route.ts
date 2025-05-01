@@ -58,10 +58,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
     const authHeader = request.headers.get("authorization");
@@ -77,8 +74,11 @@ export async function DELETE(
       tenantId: string;
     };
 
+    // Await params to get the id
+    const { id } = await params;
+
     const product = await Product.findOneAndDelete({
-      _id: params.id,
+      _id: id,
       tenantId: decoded.tenantId,
     });
 
@@ -89,12 +89,9 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json(
-      { message: "Product deleted successfully" },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Product deleted" }, { status: 200 });
   } catch (error) {
-    console.error("Product delete error:", error);
+    console.error("Product deletion error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
