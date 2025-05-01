@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MoreVertical } from "lucide-react"; // Install `lucide-react` for icons
 
 interface Product {
   _id: string;
@@ -23,10 +24,12 @@ interface ProductListProps {
 export default function ProductList({ products, onEdit, onDelete }: ProductListProps) {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
     setProductToDelete(id);
     setDeleteModalOpen(true);
+    setDropdownOpenId(null);
   };
 
   const confirmDelete = () => {
@@ -38,39 +41,66 @@ export default function ProductList({ products, onEdit, onDelete }: ProductListP
   };
 
   return (
-    <div className="mt-8">
-      <h2 className="text-xl font-semibold mb-4">Product List</h2>
+    <div className="mt-8 overflow-x-auto">
+      <h2 className="text-2xl font-bold mb-4 text-black">Product List</h2>
       {products.length === 0 ? (
-        <p className="text-gray-500">No products found</p>
+        <p className="text-gray-500">No products found.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map((product) => (
-            <div key={product._id} className="border p-4 rounded shadow">
-              <h3 className="font-semibold text-black">{product.name}</h3>
-              <p className="text-black">SKU: {product.sku}</p>
-              <p className="text-black">Category: {product.category}</p>
-              <p className="text-black">Price: ${product.price}</p>
-              <p className="text-black">Quantity: {product.quantity}</p>
-              <p className="text-sm text-gray-500">
-                Added: {new Date(product.createdAt).toLocaleDateString()}
-              </p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={() => onEdit(product)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(product._id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <table className="min-w-full bg-white border border-gray-200 shadow-md rounded-lg">
+          <thead>
+            <tr className="bg-gray-100 text-left text-gray-700">
+              <th className="p-3">Name</th>
+              <th className="p-3">SKU</th>
+              <th className="p-3">Category</th>
+              <th className="p-3">Price</th>
+              <th className="p-3">Quantity</th>
+              <th className="p-3">Added</th>
+              <th className="p-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((product) => (
+              <tr key={product._id} className="border-t hover:bg-gray-50 text-black">
+                <td className="p-3">{product.name}</td>
+                <td className="p-3">{product.sku}</td>
+                <td className="p-3">{product.category}</td>
+                <td className="p-3">${product.price}</td>
+                <td className="p-3">{product.quantity}</td>
+                <td className="p-3">
+                  {new Date(product.createdAt).toLocaleDateString()}
+                </td>
+                <td className="p-3 relative">
+                  <button
+                    onClick={() =>
+                      setDropdownOpenId(dropdownOpenId === product._id ? null : product._id)
+                    }
+                    className="p-2 hover:bg-gray-100 rounded"
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+
+                  {/* Dropdown */}
+                  {dropdownOpenId === product._id && (
+                    <div className="absolute right-0 mt-2 w-28 bg-white shadow-md rounded border z-10">
+                      <button
+                        onClick={() => onEdit(product)}
+                        className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product._id)}
+                        className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
       {/* Delete Confirmation Modal */}
@@ -78,7 +108,9 @@ export default function ProductList({ products, onEdit, onDelete }: ProductListP
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
             <h3 className="text-xl font-bold mb-4 text-black">Confirm Delete</h3>
-            <p className="mb-6 text-black">Are you sure you want to delete this product? This action cannot be undone.</p>
+            <p className="mb-6 text-black">
+              Are you sure you want to delete this product? This action cannot be undone.
+            </p>
             <div className="flex justify-end gap-4">
               <button
                 onClick={() => {
@@ -101,4 +133,4 @@ export default function ProductList({ products, onEdit, onDelete }: ProductListP
       )}
     </div>
   );
-} 
+}
