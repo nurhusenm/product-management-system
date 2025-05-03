@@ -22,6 +22,7 @@ export default function AddProduct({ onProductAdded, existingCategories, onAddCa
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [categoryError, setCategoryError] = useState("");
 
   // Auto-close modal after success
   useEffect(() => {
@@ -99,12 +100,20 @@ export default function AddProduct({ onProductAdded, existingCategories, onAddCa
   };
 
   const handleAddCategory = () => {
-    if (newCategory.trim()) {
-      onAddCategory(newCategory.trim());
-      setFormData({ ...formData, category: newCategory.trim() });
-      setShowAddCategory(false);
-      setNewCategory("");
+    const trimmedCategory = newCategory.trim();
+    if (!trimmedCategory) {
+      setCategoryError("Category name cannot be empty.");
+      return;
     }
+    if (existingCategories.includes(trimmedCategory)) {
+      setCategoryError("This category already exists.");
+      return;
+    }
+    onAddCategory(trimmedCategory);
+    setFormData({ ...formData, category: trimmedCategory });
+    setShowAddCategory(false);
+    setNewCategory("");
+    setCategoryError("");
   };
 
   return (
@@ -132,6 +141,9 @@ export default function AddProduct({ onProductAdded, existingCategories, onAddCa
               onClick={() => {
                 setIsModalOpen(false);
                 setErrorMessage("");
+                setCategoryError("");
+                setShowAddCategory(false);
+                setNewCategory("");
               }}
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
             >
@@ -202,31 +214,38 @@ export default function AddProduct({ onProductAdded, existingCategories, onAddCa
                 </button>
               </div>
               {showAddCategory && (
-                <div className="flex gap-2">
+                <div className="space-x-2 flex">
                   <input
                     type="text"
                     placeholder="Enter new category"
                     value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
+                    onChange={(e) => {
+                      setNewCategory(e.target.value);
+                      setCategoryError("");
+                    }}
                     className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   />
-                  <button
-                    type="button"
-                    onClick={handleAddCategory}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200"
-                  >
-                    Add
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddCategory(false);
-                      setNewCategory("");
-                    }}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
-                  >
-                    Cancel
-                  </button>
+                  {categoryError && <p className="text-red-500 text-sm">{categoryError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleAddCategory}
+                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddCategory(false);
+                        setNewCategory("");
+                        setCategoryError("");
+                      }}
+                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
               <div className="flex gap-2">
@@ -241,6 +260,9 @@ export default function AddProduct({ onProductAdded, existingCategories, onAddCa
                   onClick={() => {
                     setIsModalOpen(false);
                     setErrorMessage("");
+                    setCategoryError("");
+                    setShowAddCategory(false);
+                    setNewCategory("");
                   }}
                   className="w-full p-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
                 >

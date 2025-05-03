@@ -56,7 +56,7 @@ export default function ProductsPage() {
         setProducts(data || []);
         setFilteredProducts(data || []);
         const uniqueCategories = Array.from(
-          new Set(data.map((product: Product) => product.category))
+          new Set(data.map((product: Product) => product.category).filter((cat) => cat))
         ) as string[];
         setCategories(uniqueCategories);
       } else {
@@ -126,6 +126,12 @@ export default function ProductsPage() {
     }
   };
 
+  const handleAddCategory = (newCategory: string) => {
+    if (!categories.includes(newCategory)) {
+      setCategories([...categories, newCategory]);
+    }
+  };
+
   useEffect(() => {
     if (showDeleteMessage) {
       const timer = setTimeout(() => setShowDeleteMessage(false), 3000);
@@ -136,6 +142,11 @@ export default function ProductsPage() {
   return (
     <div className="max-w-4xl mx-auto mt-10 p-4">
       <h1 className="text-2xl font-bold mb-4">Products</h1>
+      {message && (
+        <p className={message.includes("successfully") ? "text-green-500" : "text-red-500"}>
+          {message}
+        </p>
+      )}
       {showDeleteMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in-slide-down z-[100]">
           <svg
@@ -161,6 +172,7 @@ export default function ProductsPage() {
         <AddProduct
           onProductAdded={() => fetchProducts(localStorage.getItem("token") || "")}
           existingCategories={categories}
+          onAddCategory={handleAddCategory}
         />
       </div>
 
