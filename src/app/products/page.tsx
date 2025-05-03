@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import ProductFilters from "../components/products/ProductFilters";
-import AddProduct from "../components/products/AddProduct";
-import EditProduct from "../components/products/EditProduct";
-import ProductList from "../components/products/ProductList";
+import ProductFilters from "../../components/products/ProductFilters";
+import AddProduct from "../../components/products/AddProduct";
+import EditProduct from "../../components/products/EditProduct";
+import ProductList from "../../components/products/ProductList";
 
 interface Product {
   _id: string;
@@ -141,7 +141,7 @@ export default function ProductsPage() {
 
   return (
     <div className="max-w-4xl mx-auto mt-10 p-4">
-      <h1 className="text-2xl font-bold mb-4">Products</h1>
+      <h1 className="text-black text-2xl font-bold mb-4">Products</h1>
       {message && (
         <p className={message.includes("successfully") ? "text-green-500" : "text-red-500"}>
           {message}
