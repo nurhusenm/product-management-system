@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import Transaction from "../../../models/Transaction";
+import Product from "../../../models/product"
 import connectToDatabase from "../../../lib/db";
 
 export async function GET(request: NextRequest) {
