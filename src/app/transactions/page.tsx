@@ -56,7 +56,6 @@ export default function TransactionsPage() {
       console.log("Fetched transactions:", transactionsData);
 
       if (productsRes.ok) {
-        // Ensure products have required fields
         const formattedProducts = productsData.map((p: any) => ({
           _id: p._id,
           name: p.name,
@@ -81,7 +80,7 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 p-4">
+    <div className="max-w-6xl mx-auto mt-10 p-4">
       <h1 className="text-2xl font-bold mb-6 text-gray-800">Transactions</h1>
       {error && (
         <p className="text-red-500 mb-4">{error}</p>
@@ -90,11 +89,14 @@ export default function TransactionsPage() {
         products={products}
         onTransactionAdded={() => fetchData(localStorage.getItem("token") || "")}
       />
-      <TransactionList transactions={transactions} />
+      <TransactionList
+        transactions={transactions}
+        onTransactionUpdated={() => fetchData(localStorage.getItem("token") || "")}
+      />
       <div className="mt-6">
         <p className="text-lg font-semibold text-gray-700">
           Total Profit:{" "}
-          <span className={profit >= 0 ? "text-green-500" : "text-red-500"}>
+          <span className={profit >= 0 ? "text-green-500" : "text bateria-red-500"}>
             ${profit.toFixed(2)}
           </span>
         </p>

@@ -22,6 +22,7 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
     type: "sale" as "sale" | "purchase",
     quantity: "",
     price: "",
+    salePrice: "",
   });
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [profitLoss, setProfitLoss] = useState<number | null>(null);
@@ -67,14 +68,15 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
 
     const quantity = parseInt(formData.quantity);
     const price = parseFloat(formData.price);
+    const salePrice = formData.salePrice ? parseFloat(formData.salePrice) : undefined;
 
-    if (!formData.productId || isNaN(quantity) || isNaN(price)) {
-      setErrorMessage("All fields are required and must be valid");
+    if (!formData.productId || isNaN(quantity) || isNaN(price) || (formData.type === "purchase" && !salePrice)) {
+      setErrorMessage("All required fields must be valid");
       return;
     }
 
-    if (quantity <= 0 || price <= 0) {
-      setErrorMessage("Quantity and price must be positive");
+    if (quantity <= 0 || price <= 0 || (salePrice && salePrice <= 0)) {
+      setErrorMessage("Quantity, price, and sale price must be positive");
       return;
     }
 
@@ -95,11 +97,12 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
           productId: formData.productId,
           quantity,
           price,
+          salePrice,
         }),
       });
       const data = await res.json();
       if (res.ok) {
-        setFormData({ productId: "", type: "sale", quantity: "", price: "" });
+        setFormData({ productId: "", type: "sale", quantity: "", price: "", salePrice: "" });
         setIsModalOpen(false);
         onTransactionAdded();
         setErrorMessage("");
@@ -115,7 +118,7 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className="mb-4 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition duration-200"
+        className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-200"
       >
         Record Transaction
       </button>
@@ -131,7 +134,7 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h2 className="text-xl font-semibold mb-4 text-black">Record Transaction</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Record Transaction</h2>
             {errorMessage && <p className="text-red-500 mb-4">{errorMessage}</p>}
             <div className="space-y-4">
               <div>
@@ -140,7 +143,7 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
                   name="productId"
                   value={formData.productId}
                   onChange={handleChange}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
                   <option value="">Select Product</option>
@@ -162,7 +165,7 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="sale">Sale</option>
                   <option value="purchase">Purchase</option>
@@ -176,34 +179,65 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
                   placeholder="Quantity"
                   value={formData.quantity}
                   onChange={handleChange}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Price</label>
-                <input
-                  type="number"
-                  name="price"
-                  placeholder="Price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  step="0.01"
-                  required
-                />
-              </div>
-              {formData.type === "sale" && profitLoss !== null && (
-                <p className={`text-sm ${profitLoss >= 0 ? "text-green-500" : "text-red-500"}`}>
-                  {profitLoss >= 0
-                    ? `Profit per unit: $${profitLoss.toFixed(2)}`
-                    : `Loss per unit: $${Math.abs(profitLoss).toFixed(2)}`}
-                </p>
+              {formData.type === "sale" ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Sale Price</label>
+                  <input
+                    type="number"
+                    name="price"
+                    placeholder="Sale Price"
+                    value={formData.price}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    step="0.01"
+                    required
+                  />
+                  {formData.type === "sale" && profitLoss !== null && (
+                    <p className={`text-sm ${profitLoss >= 0 ? "text-green-500" : "text-red-500"}`}>
+                      {profitLoss >= 0
+                        ? `Profit per unit: $${profitLoss.toFixed(2)}`
+                        : `Loss per unit: $${Math.abs(profitLoss).toFixed(2)}`}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Cost (Purchase Price)</label>
+                    <input
+                      type="number"
+                      name="price"
+                      placeholder="Cost"
+                      value={formData.price}
+                      onChange={handleChange}
+                      className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Sale Price (Selling Price)</label>
+                    <input
+                      type="number"
+                      name="salePrice"
+                      placeholder="Sale Price"
+                      value={formData.salePrice}
+                      onChange={handleChange}
+                      className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                </>
               )}
               <div className="flex gap-2">
                 <button
                   onClick={handleSubmit}
-                  className="w-full p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"
+                  className="w-full p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
                 >
                   Record Transaction
                 </button>

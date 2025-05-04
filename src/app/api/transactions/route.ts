@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import Transaction from "../../../models/Transaction";
-import Product from "../../../models/product"
+import Product from "../../../models/product";
 import connectToDatabase from "../../../lib/db";
 
 export async function GET(request: NextRequest) {
@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
     const query: any = { tenantId: decoded.tenantId };
     if (startDate) query.date = { $gte: startDate };
 
-    const transactions = await Transaction.find(query).populate("productId", "name");
-    const profit = calculateProfit(transactions);
+    const transactions = await Transaction.find(query).populate("productId", "name cost");
+    const profit = await calculateProfit(transactions);
 
     return NextResponse.json({ transactions, profit }, { status: 200 });
   } catch (error) {
@@ -42,10 +42,16 @@ function calculateStartDate(period: string | null): Date | null {
   return null;
 }
 
-function calculateProfit(transactions: any[]): number {
-  return transactions.reduce((acc, t) => {
-    return t.type === "sale" ? acc + t.quantity * t.price : acc - t.quantity * t.price;
-  }, 0);
+async function calculateProfit(transactions: any[]): Promise<number> {
+  let totalProfit = 0;
+  for (const t of transactions) {
+    if (t.type === "sale" && t.productId?.cost) {
+      totalProfit += (t.price - t.productId.cost) * t.quantity;
+    } else if (t.type === "purchase") {
+      totalProfit -= t.price * t.quantity; // Price is the cost for purchases
+    }
+  }
+  return totalProfit;
 }
 
 export async function POST(request: NextRequest) {
@@ -62,10 +68,14 @@ export async function POST(request: NextRequest) {
     };
 
     const body = await request.json();
-    const { type, productId, quantity, price } = body;
+    const { type, productId, quantity, price, salePrice } = body;
 
-    if (quantity <= 0 || price <= 0) {
-      return NextResponse.json({ error: "Quantity and price must be positive" }, { status: 400 });
+    if (!type || !productId || !quantity || !price) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (quantity <= 0 || price <= 0 || (salePrice && salePrice <= 0)) {
+      return NextResponse.json({ error: "Quantity, price, and sale price must be positive" }, { status: 400 });
     }
 
     const product = await Product.findOne({ _id: productId, tenantId: decoded.tenantId });
@@ -80,6 +90,8 @@ export async function POST(request: NextRequest) {
       product.quantity -= quantity;
     } else if (type === "purchase") {
       product.quantity += quantity;
+      product.cost = price; // Update cost for purchases
+      if (salePrice) product.price = salePrice; // Update sale price if provided
     }
     await product.save();
 
