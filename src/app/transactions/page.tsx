@@ -25,6 +25,7 @@ export default function TransactionsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [profit, setProfit] = useState<number>(0);
+  const [inventoryValue, setInventoryValue] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -52,9 +53,6 @@ export default function TransactionsPage() {
       const productsData = await productsRes.json();
       const transactionsData = await transactionsRes.json();
 
-      console.log("Fetched products:", productsData);
-      console.log("Fetched transactions:", transactionsData);
-
       if (productsRes.ok) {
         const formattedProducts = productsData.map((p: any) => ({
           _id: p._id,
@@ -63,6 +61,11 @@ export default function TransactionsPage() {
           cost: p.cost ?? 0,
         }));
         setProducts(formattedProducts);
+        const totalInventoryValue = formattedProducts.reduce(
+          (acc, p) => acc + (p.quantity * p.cost),
+          0
+        );
+        setInventoryValue(totalInventoryValue);
       } else {
         setError(productsData.error || "Failed to fetch products");
       }
@@ -85,22 +88,27 @@ export default function TransactionsPage() {
       {error && (
         <p className="text-red-500 mb-4">{error}</p>
       )}
-      <TransactionForm
-        products={products}
-        onTransactionAdded={() => fetchData(localStorage.getItem("token") || "")}
-      />
+      <div className="flex justify-between items-center mb-6">
+        <TransactionForm
+          products={products}
+          onTransactionAdded={() => fetchData(localStorage.getItem("token") || "")}
+        />
+        <div className="text-lg font-semibold text-gray-700">
+          <p>
+            Total Profit from Sales:{" "}
+            <span className={profit >= 0 ? "text-green-500" : "text-red-500"}>
+              ${profit.toFixed(2)}
+            </span>
+          </p>
+          <p>
+            Current Inventory Value: ${inventoryValue.toFixed(2)}
+          </p>
+        </div>
+      </div>
       <TransactionList
         transactions={transactions}
         onTransactionUpdated={() => fetchData(localStorage.getItem("token") || "")}
       />
-      <div className="mt-6">
-        <p className="text-lg font-semibold text-gray-700">
-          Total Profit:{" "}
-          <span className={profit >= 0 ? "text-green-500" : "text bateria-red-500"}>
-            ${profit.toFixed(2)}
-          </span>
-        </p>
-      </div>
     </div>
   );
 }

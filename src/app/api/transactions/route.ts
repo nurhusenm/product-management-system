@@ -47,9 +47,8 @@ async function calculateProfit(transactions: any[]): Promise<number> {
   for (const t of transactions) {
     if (t.type === "sale" && t.productId?.cost) {
       totalProfit += (t.price - t.productId.cost) * t.quantity;
-    } else if (t.type === "purchase") {
-      totalProfit -= t.price * t.quantity; // Price is the cost for purchases
     }
+    // Purchases do not affect profit directly
   }
   return totalProfit;
 }
