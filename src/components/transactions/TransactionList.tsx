@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 interface Transaction {
@@ -19,7 +19,18 @@ interface TransactionListProps {
 
 export default function TransactionList({ transactions, onTransactionUpdated }: TransactionListProps) {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleDelete = async (transactionId: string) => {
     const token = localStorage.getItem("token");
@@ -35,6 +46,7 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
       });
       if (res.ok) {
         onTransactionUpdated();
+        setMenuOpen(null);
       } else {
         const data = await res.json();
         alert(data.error || "Failed to delete transaction");
@@ -46,6 +58,7 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
 
   const handleEdit = (transaction: Transaction) => {
     alert("Edit functionality to be implemented");
+    setMenuOpen(null);
     // Implement edit logic later
   };
 
@@ -80,18 +93,14 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
                 return (
                   <tr
                     key={transaction._id}
-                    className={`hover:bg-gray-50 ${isSale ? "bg-green-50" : "bg-blue-50"}`}
+                    className={`hover:bg-gray-50 ${isSale ? "bg-green-50" : "bg-blue-50"} text-black`}
                   >
                     <td className="py-2 px-4 border-b">
                       {transaction.date
                         ? new Date(transaction.date).toLocaleDateString()
                         : "N/A"}
                     </td>
-                    <td
-                      className={`py-2 px-4 border-b font-medium ${
-                        isSale ? "text-green-600" : "text-blue-600"
-                      }`}
-                    >
+                    <td className="py-2 px-4 border-b font-medium">
                       {transaction.type || "N/A"}
                     </td>
                     <td className="py-2 px-4 border-b">
@@ -130,7 +139,10 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
                         </svg>
                       </button>
                       {menuOpen === transaction._id && (
-                        <div className="absolute right-0 mt-2 w-32 bg-white border rounded-lg shadow-lg z-10">
+                        <div
+                          ref={menuRef}
+                          className="absolute right-0 mt-2 w-32 bg-white border rounded-lg shadow-lg z-10"
+                        >
                           <button
                             onClick={() => handleEdit(transaction)}
                             className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
