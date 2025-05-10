@@ -5,85 +5,47 @@ import Product from "../../../models/product";
 import connectToDatabase from "../../../lib/db";
 import mongoose from "mongoose";
 
+
+
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as {
-      userId: string;
-      tenantId: string;
-    };
-
     const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
     const type = url.searchParams.get("type") || "";
     const productName = url.searchParams.get("productName") || "";
     const dateRange = url.searchParams.get("dateRange") || "";
-    const period = url.searchParams.get("period");
 
-    // Use tenantId as a string (no ObjectId conversion)
-    const tenantId = decoded.tenantId;
-    if (!tenantId) {
-      return NextResponse.json({ error: "Missing tenantId" }, { status: 400 });
-    }
+    // Build query based on filters
+    const query: any = {};
+    if (type) query.type = type;
+    if (productName) query.productId = { $in: await findProductIdsByName(productName) }; // Adjust based on your schema
+    if (dateRange) query.date = { $gte: new Date(dateRange) }; // Adjust date filtering as needed
 
-    // Build the aggregation pipeline
-    const pipeline: any[] = [
-      { $match: { tenantId } }, // Match transactions for this tenant
-      {
-        $lookup: {
-          from: "products", // Must match your Product collection name in MongoDB
-          localField: "productId",
-          foreignField: "_id",
-          as: "product",
-        },
-      },
-      { $unwind: "$product" }, // Flatten the product array
-    ];
+    // Get total transactions for pagination
+    const totalTransactions = await Transaction.countDocuments(query);
+    const totalPages = Math.ceil(totalTransactions / limit);
 
-    // Add filters to the pipeline
-    if (type) {
-      pipeline.push({ $match: { type } });
-    }
-    if (productName) {
-      pipeline.push({
-        $match: { "product.name": { $regex: productName, $options: "i" } },
-      });
-    }
-    if (dateRange || period) {
-      const startDate = calculateStartDate(dateRange || period);
-      if (startDate) {
-        pipeline.push({ $match: { date: { $gte: startDate } } });
-      }
-    }
+    // Fetch paginated transactions, sorted by date descending
+    const transactions = await Transaction.find(query)
+      .populate("productId", "name cost") // Adjust based on your schema
+      .sort({ date: -1 }) // Newest first
+      .skip(skip)
+      .limit(limit);
 
-    // Project the desired fields to match frontend expectations
-    pipeline.push({
-      $project: {
-        _id: 1,
-        type: 1,
-        productId: {
-          _id: "$product._id",
-          name: "$product.name",
-          cost: "$product.cost",
-        },
-        quantity: 1,
-        price: 1,
-        date: 1,
-      },
-    });
-
-    const transactions = await Transaction.aggregate(pipeline);
-    const profit = await calculateProfit(transactions);
-
-    return NextResponse.json({ transactions, profit }, { status: 200 });
+    return NextResponse.json({ transactions, totalPages }, { status: 200 });
   } catch (error) {
     console.error("Fetch transactions error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
+}
+
+// Helper function (implement based on your Product model)
+async function findProductIdsByName(name: string) {
+  const products = await Product.find({ name: { $regex: name, $options: "i" } });
+  return products.map((p) => p._id);
 }
 
 function calculateStartDate(period: string | null): Date | null {

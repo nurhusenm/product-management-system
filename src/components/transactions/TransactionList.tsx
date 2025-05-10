@@ -165,6 +165,11 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
           </table>
         </div>
       )}
+
+
+
+
+      
     </div>
   );
 }

@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import TransactionForm from "../../components/transactions/TransactionForm";
 import TransactionList from "../../components/transactions/TransactionList";
 import TransactionFilter from "../../components/transactions/transactionFilter";
+import jsPDF from "jspdf";
+// import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
+
 
 interface Product {
   _id: string;
@@ -33,7 +37,11 @@ export default function TransactionsPage() {
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+const [totalPages, setTotalPages] = useState(1);
+
   const router = useRouter();
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -41,24 +49,27 @@ export default function TransactionsPage() {
       router.push("/login?message=Please login to view transactions");
       return;
     }
-    fetchData(token, filters);
-  }, [router, filters]);
+    fetchData(token, filters, page);
+  }, [router, filters, page]);
 
-  const fetchData = async (token: string, filters: any) => {
+  const fetchData = async (token: string, filters: any, currentPage: number) => {
     try {
       setError(null);
       const [productsRes, transactionsRes] = await Promise.all([
         fetch("/api/products", {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`/api/transactions?type=${filters.type}&productName=${filters.productName}&dateRange=${filters.dateRange}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        fetch(
+          `/api/transactions?type=${filters.type}&productName=${filters.productName}&dateRange=${filters.dateRange}&page=${currentPage}&limit=10`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        ),
       ]);
-
+  
       const productsData = await productsRes.json();
       const transactionsData = await transactionsRes.json();
-
+  
       if (productsRes.ok) {
         const formattedProducts = productsData.map((p: any) => ({
           _id: p._id,
@@ -70,10 +81,11 @@ export default function TransactionsPage() {
       } else {
         setError(productsData.error || "Failed to fetch products");
       }
-
+  
       if (transactionsRes.ok) {
         setTransactions(transactionsData.transactions || []);
         setProfit(transactionsData.profit ?? 0);
+        setTotalPages(transactionsData.totalPages || 1); // Set total pages
       } else {
         setError(transactionsData.error || "Failed to fetch transactions");
       }
@@ -87,9 +99,36 @@ export default function TransactionsPage() {
     setFilters((prev) => ({ ...prev, [filterKey]: "" }));
   };
 
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+autoTable(doc, {
+  head: [["Date", "Type", "Product", "Quantity", "Price", "Total"]],
+  body: transactions.map((t) => [
+    new Date(t.date).toLocaleDateString(),
+    t.type,
+    t.productId?.name || "Unknown",
+    t.quantity,
+    `$${t.price.toFixed(2)}`,
+    `$${(t.quantity * t.price).toFixed(2)}`,
+  ]),
+});
+doc.save("transactions.pdf");
+
+  };
+
   return (
     <div className="max-w-6xl mx-auto mt-10 p-4">
+      <div className="flex justify-between">
       <h1 className="text-2xl font-bold mb-6 text-gray-800">Transactions</h1>
+      <button
+          onClick={exportToPDF}
+          className="px-2 text-xs py-1 font-bold bg-black text-white rounded-lg hover:bg-gray-700 transition duration-200"
+        >
+          Export to PDF
+        </button>
+
+
+      </div>
       {error && (
         <p className="text-red-500 mb-4">{error}</p>
       )}
@@ -161,6 +200,26 @@ export default function TransactionsPage() {
           onClose={() => setIsFilterOpen(false)}
         />
       )}
+
+
+
+<div className="flex justify-between mt-4">
+  <button
+    onClick={() => setPage((p) => Math.max(p - 1, 1))}
+    disabled={page === 1}
+    className="px-4 py-2 bg-gray-600 text-white rounded-lg disabled:bg-gray-400"
+  >
+    Previous
+  </button>
+  <span>Page {page} of {totalPages}</span>
+  <button
+    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+    disabled={page === totalPages}
+    className="px-4 py-2 bg-gray-600 text-white rounded-lg disabled:bg-gray-400"
+  >
+    Next
+  </button>
+</div>
     </div>
   );
 }
