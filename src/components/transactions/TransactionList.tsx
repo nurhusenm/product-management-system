@@ -255,7 +255,7 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
         </div>
       )}
 
-      <div className="mb-6 bg-white rounded-lg shadow-md p-4">
+      {/* <div className="mb-6 bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <h2 className="text-2xl font-bold text-black">Total Profit Overview</h2>
@@ -286,7 +286,7 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       <h2 className="text-xl font-semibold mb-4 text-gray-800">Transaction History</h2>
       {transactions.length === 0 ? (
