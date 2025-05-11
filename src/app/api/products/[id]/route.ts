@@ -3,7 +3,31 @@ import jwt from "jsonwebtoken";
 import Product from "../../../../models/product";
 import connectToDatabase from "../../../../lib/db";
 
+export async function GET(request: NextRequest, context: { params: { id: string } }) {
+  try {
+    await connectToDatabase();
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as {
+      userId: string;
+      tenantId: string;
+    };
+
+    const product = await Product.findOne({ _id: context.params.id, tenantId: decoded.tenantId });
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(product);
+  } catch (error) {
+    console.error("Get product error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

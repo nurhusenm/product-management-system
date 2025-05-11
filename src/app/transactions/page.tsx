@@ -20,7 +20,7 @@ interface Product {
 interface Transaction {
   _id: string;
   type: "sale" | "purchase";
-  productId: { name: string } | null;
+  productId: { _id: string; name: string; cost: number; quantity: number } | null;
   quantity: number;
   price: number;
   date: string;
@@ -30,6 +30,7 @@ export default function TransactionsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [profit, setProfit] = useState<number>(0);
+  const [showProfitDetails, setShowProfitDetails] = useState(false);
   const [filters, setFilters] = useState({
     type: "",
     productName: "",
@@ -51,6 +52,27 @@ const [totalPages, setTotalPages] = useState(1);
     }
     fetchData(token, filters, page);
   }, [router, filters, page]);
+
+  useEffect(() => {
+    const calculateTotalProfit = () => {
+      return transactions.reduce((total, transaction) => {
+        if (transaction.type === "sale" && transaction.productId) {
+          // Find the product to get its cost
+          const product = products.find(p => p._id === transaction.productId?._id);
+          if (product) {
+            const profit = (transaction.price - product.cost) * transaction.quantity;
+            return total + profit;
+          }
+        }
+        return total;
+      }, 0);
+    };
+
+    if (transactions.length > 0 && products.length > 0) {
+      const totalProfit = calculateTotalProfit();
+      setProfit(totalProfit);
+    }
+  }, [transactions, products]);
 
   const fetchData = async (token: string, filters: any, currentPage: number) => {
     try {
@@ -84,7 +106,6 @@ const [totalPages, setTotalPages] = useState(1);
   
       if (transactionsRes.ok) {
         setTransactions(transactionsData.transactions || []);
-        setProfit(transactionsData.profit ?? 0);
         setTotalPages(transactionsData.totalPages || 1); // Set total pages
       } else {
         setError(transactionsData.error || "Failed to fetch transactions");
@@ -119,15 +140,13 @@ doc.save("transactions.pdf");
   return (
     <div className="max-w-6xl mx-auto mt-10 p-4">
       <div className="flex justify-between">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Transactions</h1>
-      <button
+        <h1 className="text-2xl font-bold mb-6 text-gray-800">Transactions</h1>
+        <button
           onClick={exportToPDF}
           className="px-2 text-xs py-1 font-bold bg-black text-white rounded-lg hover:bg-gray-700 transition duration-200"
         >
           Export to PDF
         </button>
-
-
       </div>
       {error && (
         <p className="text-red-500 mb-4">{error}</p>
@@ -135,7 +154,7 @@ doc.save("transactions.pdf");
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <TransactionForm
           products={products}
-          onTransactionAdded={() => fetchData(localStorage.getItem("token") || "", filters)}
+          onTransactionAdded={() => fetchData(localStorage.getItem("token") || "", filters, page)}
         />
         <button
           onClick={() => setIsFilterOpen(true)}
@@ -143,13 +162,30 @@ doc.save("transactions.pdf");
         >
           Filter
         </button>
-        <div className="text-lg font-semibold text-gray-700 order-1 md:order-2">
-          <p>
-            Total Profit from Sales:{" "}
-            <span className={profit >= 0 ? "text-green-500" : "text-red-500"}>
-              ${profit.toFixed(2)}
+        <div 
+          onClick={() => setShowProfitDetails(!showProfitDetails)}
+          className="bg-white rounded-lg shadow-md px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors duration-200 order-1 md:order-2"
+        >
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-600">Total Profit:</span>
+            <span className={`text-lg font-bold ${profit >= 0 ? "text-green-600" : "text-red-600"}`}>
+              {showProfitDetails ? (
+                `${profit >= 0 ? "+ " : "-"}$${Math.abs(profit).toFixed(2)}`
+              ) : (
+                <div className="flex items-center">
+                  <span className="mr-1">${Math.abs(profit).toFixed(2)}</span>
+                  {/* <svg
+                    className={`w-4 h-4 text-gray-500 transform transition-transform duration-200 ${showProfitDetails ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg> */}
+                </div>
+              )}
             </span>
-          </p>
+          </div>
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mb-4">
@@ -189,7 +225,7 @@ doc.save("transactions.pdf");
       </div>
       <TransactionList
         transactions={transactions}
-        onTransactionUpdated={() => fetchData(localStorage.getItem("token") || "", filters)}
+        onTransactionUpdated={() => fetchData(localStorage.getItem("token") || "", filters, page)}
       />
       {isFilterOpen && (
         <TransactionFilter
