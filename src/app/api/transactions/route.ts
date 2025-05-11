@@ -5,7 +5,19 @@ import Product from "../../../models/product";
 import connectToDatabase from "../../../lib/db";
 import mongoose from "mongoose";
 
-
+// Add retry logic for database connection
+async function connectWithRetry(retries = 3, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await connectToDatabase();
+      return true;
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  return false;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,7 +84,7 @@ async function calculateProfit(transactions: any[]): Promise<number> {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase();
+    await connectWithRetry();
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -94,35 +106,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Quantity, price, and sale price must be positive" }, { status: 400 });
     }
 
-    const product = await Product.findOne({ _id: productId, tenantId: decoded.tenantId });
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    // Use a session for transaction
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        const product = await Product.findOne({ _id: productId, tenantId: decoded.tenantId }).session(session);
+        if (!product) {
+          throw new Error("Product not found");
+        }
+
+        if (type === "sale") {
+          if (product.quantity < quantity) {
+            throw new Error("Insufficient stock");
+          }
+          product.quantity -= quantity;
+        } else if (type === "purchase") {
+          product.quantity += quantity;
+          product.cost = price;
+          if (salePrice) product.price = salePrice;
+        }
+        await product.save({ session });
+
+        const transaction = new Transaction({
+          tenantId: decoded.tenantId,
+          type,
+          productId,
+          quantity,
+          price,
+          date: new Date(),
+        });
+        await transaction.save({ session });
+      });
+
+      return NextResponse.json({ message: "Transaction recorded successfully" }, { status: 201 });
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message || "Transaction failed" }, { status: 400 });
+    } finally {
+      await session.endSession();
     }
-
-    if (type === "sale") {
-      if (product.quantity < quantity) {
-        return NextResponse.json({ error: "Insufficient stock" }, { status: 400 });
-      }
-      product.quantity -= quantity;
-    } else if (type === "purchase") {
-      product.quantity += quantity;
-      product.cost = price;
-      if (salePrice) product.price = salePrice;
-    }
-    await product.save();
-
-    const transaction = new Transaction({
-      tenantId: decoded.tenantId,
-      type,
-      productId,
-      quantity,
-      price,
-    });
-    await transaction.save();
-
-    return NextResponse.json({ message: "Transaction recorded", transaction }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Transaction error:", error);
+    if (error.name === 'MongoServerSelectionError') {
+      return NextResponse.json({ error: "Database connection error. Please try again." }, { status: 503 });
+    }
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

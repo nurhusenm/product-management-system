@@ -24,7 +24,7 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deleteTransaction, setDeleteTransaction] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showProfitDetails, setShowProfitDetails] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editFormData, setEditFormData] = useState({
     type: "sale" as "sale" | "purchase",
     quantity: "",
@@ -101,13 +101,13 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
   };
 
   const handleEdit = async (transaction: Transaction) => {
-    // Fetch the latest product data to get current stock
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/login");
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const res = await fetch(`/api/products/${transaction.productId?._id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -134,6 +134,8 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
       }
     } catch (error) {
       alert("Error fetching product data");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -143,14 +145,25 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
   };
 
   // Calculate total profit from all transactions
- 
+  const calculateTotalProfit = () => {
+    return transactions.reduce((total, transaction) => {
+      if (transaction.type === "sale" && transaction.productId) {
+        const profit = (transaction.price - transaction.productId.cost) * transaction.quantity;
+        return total + profit;
+      }
+      return total;
+    }, 0);
+  };
+
+  const totalProfit = calculateTotalProfit();
 
   const calculateProfitLoss = () => {
     if (!editingTransaction?.productId || editFormData.type !== "sale") return null;
     const salePrice = parseFloat(editFormData.price);
     const cost = editingTransaction.productId.cost;
-    if (!isNaN(salePrice) && cost) {
-      return salePrice - cost;
+    const quantity = parseInt(editFormData.quantity);
+    if (!isNaN(salePrice) && !isNaN(quantity) && cost) {
+      return (salePrice - cost) * quantity;
     }
     return null;
   };
@@ -242,53 +255,38 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
         </div>
       )}
 
-      {/* <div className="mb-6 bg-white rounded-lg shadow-md p-4">
-        <div 
-          onClick={() => setShowProfitDetails(!showProfitDetails)}
-          className="flex items-center justify-between cursor-pointer"
-        >
+      <div className="mb-6 bg-white rounded-lg shadow-md p-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <h2 className="text-2xl font-bold text-black">Total Profit Overview</h2>
             <span className={`text-lg font-semibold ${totalProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
               ${Math.abs(totalProfit).toFixed(2)}
             </span>
           </div>
-          <svg
-            className={`w-6 h-6 transform transition-transform duration-200 ${showProfitDetails ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
         </div>
-        
-        {showProfitDetails && (
-          <div className="mt-4 space-y-2 text-black">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm font-medium text-gray-600">Total Sales</p>
-                <p className="text-lg font-semibold">
-                  ${transactions
-                    .filter(t => t.type === "sale")
-                    .reduce((sum, t) => sum + (t.price * t.quantity), 0)
-                    .toFixed(2)}
-                </p>
-              </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm font-medium text-gray-600">Total Purchases</p>
-                <p className="text-lg font-semibold">
-                  ${transactions
-                    .filter(t => t.type === "purchase")
-                    .reduce((sum, t) => sum + (t.price * t.quantity), 0)
-                    .toFixed(2)}
-                </p>
-              </div>
+        <div className="mt-4 space-y-2 text-black">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <p className="text-sm font-medium text-gray-600">Total Sales</p>
+              <p className="text-lg font-semibold">
+                ${transactions
+                  .filter(t => t.type === "sale")
+                  .reduce((sum, t) => sum + (t.price * t.quantity), 0)
+                  .toFixed(2)}
+              </p>
             </div>
-           
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <p className="text-sm font-medium text-gray-600">Total Purchases</p>
+              <p className="text-lg font-semibold">
+                ${transactions
+                  .filter(t => t.type === "purchase")
+                  .reduce((sum, t) => sum + (t.price * t.quantity), 0)
+                  .toFixed(2)}
+              </p>
+            </div>
           </div>
-        )}
-      </div> */}
+        </div>
+      </div>
 
       <h2 className="text-xl font-semibold mb-4 text-gray-800">Transaction History</h2>
       {transactions.length === 0 ? (
@@ -371,15 +369,17 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
                         >
                           <button
                             onClick={() => handleEdit(transaction)}
-                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            disabled={isSubmitting}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                           >
-                            Edit
+                            {isSubmitting ? "Loading..." : "Edit"}
                           </button>
                           <button
                             onClick={() => handleDelete(transaction)}
-                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                            disabled={isLoading}
+                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 disabled:opacity-50"
                           >
-                            Delete
+                            {isLoading ? "Loading..." : "Delete"}
                           </button>
                         </div>
                       )}
@@ -465,8 +465,8 @@ export default function TransactionList({ transactions, onTransactionUpdated }: 
                 {editFormData.type === "sale" && editingTransaction.productId && profitLoss !== null && (
                   <p className={`text-sm mt-1 ${profitLoss >= 0 ? "text-green-500" : "text-red-500"}`}>
                     {profitLoss >= 0
-                      ? `Profit per unit: $${profitLoss.toFixed(2)}`
-                      : `Loss per unit: $${Math.abs(profitLoss).toFixed(2)}`}
+                      ? `Total Profit: $${profitLoss.toFixed(2)}`
+                      : `Total Loss: $${Math.abs(profitLoss).toFixed(2)}`}
                   </p>
                 )}
               </div>

@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import Product from "../../../../models/product";
 import connectToDatabase from "../../../../lib/db";
 
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
     const authHeader = request.headers.get("authorization");
@@ -17,7 +17,10 @@ export async function GET(request: NextRequest, context: { params: { id: string 
       tenantId: string;
     };
 
-    const product = await Product.findOne({ _id: context.params.id, tenantId: decoded.tenantId });
+    // Await params to get the id
+    const { id } = await params;
+
+    const product = await Product.findOne({ _id: id, tenantId: decoded.tenantId });
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
