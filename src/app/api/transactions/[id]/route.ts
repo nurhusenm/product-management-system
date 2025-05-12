@@ -6,7 +6,9 @@ import connectToDatabase from "../../../../lib/db";
 import mongoose from "mongoose";
 
 export async function PUT(request: NextRequest, context: { params: { id: string } }) {
-  const id = context.params.id;
+  
+  const { id } = await context.params;
+
   try {
     await connectToDatabase();
     const authHeader = request.headers.get("authorization");
@@ -91,7 +93,9 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
 }
 
 export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
-  const id = context.params.id;
+  
+  const { id } = await context.params;
+
   try {
     await connectToDatabase();
     const authHeader = request.headers.get("authorization");

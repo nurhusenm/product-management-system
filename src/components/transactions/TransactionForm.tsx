@@ -17,6 +17,8 @@ interface TransactionFormProps {
 
 export default function TransactionForm({ products, onTransactionAdded }: TransactionFormProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     productId: "",
     type: "sale" as "sale" | "purchase",
@@ -59,6 +61,10 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsConfirmModalOpen(true);
+  };
+
+  const confirmSubmit = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Please login to record transactions");
@@ -66,26 +72,29 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
       return;
     }
 
-    const quantity = parseInt(formData.quantity);
-    const price = parseFloat(formData.price);
-    const salePrice = formData.salePrice ? parseFloat(formData.salePrice) : undefined;
-
-    if (!formData.productId || isNaN(quantity) || isNaN(price) || (formData.type === "purchase" && !salePrice)) {
-      setErrorMessage("All required fields must be valid");
-      return;
-    }
-
-    if (quantity <= 0 || price <= 0 || (salePrice && salePrice <= 0)) {
-      setErrorMessage("Quantity, price, and sale price must be positive");
-      return;
-    }
-
-    if (formData.type === "sale" && selectedProduct && quantity > selectedProduct.quantity) {
-      setErrorMessage(`Insufficient stock. Available: ${selectedProduct.quantity}`);
-      return;
-    }
+    setIsSubmitting(true);
+    setIsConfirmModalOpen(false);
 
     try {
+      const quantity = parseInt(formData.quantity);
+      const price = parseFloat(formData.price);
+      const salePrice = formData.salePrice ? parseFloat(formData.salePrice) : undefined;
+
+      if (!formData.productId || isNaN(quantity) || isNaN(price) || (formData.type === "purchase" && !salePrice)) {
+        setErrorMessage("All required fields must be valid");
+        return;
+      }
+
+      if (quantity <= 0 || price <= 0 || (salePrice && salePrice <= 0)) {
+        setErrorMessage("Quantity, price, and sale price must be positive");
+        return;
+      }
+
+      if (formData.type === "sale" && selectedProduct && quantity > selectedProduct.quantity) {
+        setErrorMessage(`Insufficient stock. Available: ${selectedProduct.quantity}`);
+        return;
+      }
+
       const res = await fetch("/api/transactions", {
         method: "POST",
         headers: {
@@ -100,6 +109,7 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
           salePrice,
         }),
       });
+
       const data = await res.json();
       if (res.ok) {
         setFormData({ productId: "", type: "sale", quantity: "", price: "", salePrice: "" });
@@ -111,6 +121,8 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
       }
     } catch (error) {
       setErrorMessage("An error occurred while recording the transaction");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -237,17 +249,70 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
               <div className="flex gap-2">
                 <button
                   onClick={handleSubmit}
-                  className="w-full p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
+                  disabled={isSubmitting}
+                  className="w-full p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Record Transaction
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    "Record Transaction"
+                  )}
                 </button>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="w-full p-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
+                  disabled={isSubmitting}
+                  className="w-full p-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">Confirm Transaction</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to record this {formData.type} transaction for{" "}
+              <span className="font-semibold">
+                {products.find(p => p._id === formData.productId)?.name || "selected product"}
+              </span>
+              ?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={confirmSubmit}
+                disabled={isSubmitting}
+                className="w-full p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm"
+                )}
+              </button>
+              <button
+                onClick={() => setIsConfirmModalOpen(false)}
+                disabled={isSubmitting}
+                className="w-full p-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
