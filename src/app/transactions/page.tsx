@@ -188,11 +188,11 @@ const [isExporting, setIsExporting] = useState(false);
 
   return (
     <div className="max-w-6xl mx-auto mt-10 p-4">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Transactions</h1>
+      <div className="flex flex-wrap md:flex-row justify-between items-start mb-6 gap-4">
+        <h1 className="text-2xl font-bold text-gray-800  ">Transactions</h1>
         
         {/* Search Bar */}
-        <div className="relative flex-1 max-w-md mx-4">
+        <div className="relative flex-1 max-w-md mx-4 w-full order-3 md:order-2">
           <input
             type="text"
             placeholder="Search transactions..."
@@ -216,7 +216,7 @@ const [isExporting, setIsExporting] = useState(false);
         </div>
 
         {/* Export Buttons */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap order-2 md:order-3 ">
           <button
             onClick={exportToPDF}
             disabled={isExporting}
@@ -266,7 +266,7 @@ const [isExporting, setIsExporting] = useState(false);
       {error && (
         <p className="text-red-500 mb-4">{error}</p>
       )}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+      <div className="flex  flex-wrap md:flex-row justify-between items-center mb-6 gap-4">
         <TransactionForm
           products={products}
           onTransactionAdded={() => fetchData(localStorage.getItem("token") || "", filters, page)}
@@ -278,7 +278,7 @@ const [isExporting, setIsExporting] = useState(false);
           Filter
         </button>
         <div 
-          onClick={() => setShowProfitDetails(!showProfitDetails)}
+          
           className="bg-white rounded-lg shadow-md px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors duration-200 order-1 md:order-2"
         >
           <div className="flex items-center space-x-2">

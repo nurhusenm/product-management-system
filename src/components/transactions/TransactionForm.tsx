@@ -277,7 +277,7 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
         </div>
       )}
 
-      {isConfirmModalOpen && (
+       {isConfirmModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">Confirm Transaction</h3>
@@ -316,7 +316,7 @@ export default function TransactionForm({ products, onTransactionAdded }: Transa
             </div>
           </div>
         </div>
-      )}
+      )} 
     </>
   );
 }
