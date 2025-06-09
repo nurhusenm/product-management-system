@@ -17,6 +17,8 @@ export default async function connectToDatabase() {
     await mongoose.connect(MONGODB_URI);
     isConnected = true;
     console.log("Connected to MongoDB");
+    console.log('mongodb url', MONGODB_URI);
+
   } catch (error) {
     console.error("MongoDB connection error:", error);
     throw new Error("Failed to connect to MongoDB");
