@@ -33,15 +33,15 @@ export function RecentTransactions({
 
   return (
     <Card className="p-6">
-      <h3 className="mb-4 text-lg font-semibold">Recent Transactions</h3>
+      <h3 className="mb-4 text-lg font-semibold text-black">Recent Transactions</h3>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b text-left text-sm text-muted-foreground">
-              <th className="pb-3 font-medium">Type</th>
-              <th className="pb-3 font-medium">Product</th>
-              <th className="pb-3 font-medium">Amount</th>
-              <th className="pb-3 font-medium">Time</th>
+              <th className="pb-3 font-medium text-black">Type</th>
+              <th className="pb-3 font-medium text-black">Product</th>
+              <th className="pb-3 font-medium text-black">Time</th>
+              <th className="pb-3 font-medium text-black">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -61,14 +61,14 @@ export function RecentTransactions({
                     {transaction.type === 'sale' ? 'Sale' : 'Purchase'}
                   </span>
                 </td>
-                <td className="py-3 font-medium">{transaction.productName}</td>
-                <td className="py-3">
+                <td className="py-3 font-medium text-black">{transaction.productName}</td>
+                <td className="py-3 text-gray-400">
                   {new Intl.NumberFormat('en-US', {
                     style: 'currency',
                     currency: 'USD',
                   }).format(transaction.amount)}
                 </td>
-                <td className="py-3 text-muted-foreground">
+                <td className="py-3 text-muted-foreground text-black">
                   {formatDistanceToNow(new Date(transaction.createdAt), {
                     addSuffix: true,
                   })}

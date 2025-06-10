@@ -1,3 +1,5 @@
+"use client"
+
 import {
   LineChart,
   Line,
@@ -75,7 +77,7 @@ export function TrendChart({ data, loading = false }: TrendChartProps) {
 
   return (
     <Card className="p-6">
-      <h3 className="mb-4 text-lg font-semibold">Sales vs Purchases Trend</h3>
+      <h3 className="mb-4 text-lg font-semibold text-black">Sales vs Purchases Trend</h3>
       <div className="h-[400px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart

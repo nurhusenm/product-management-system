@@ -7,14 +7,14 @@
 // export default nextConfig;
 
 module.exports = {
-  async redirects() {
-    return [
-      {
-        source: '/dashboard',
-        destination: '/',
-        permanent: false,
-      },
-    ];
-  },
+  // async redirects() {
+  //   // return [
+  //   //   {
+  //   //     source: '/dashboard',
+  //   //     destination: '/',
+  //   //     permanent: false,
+  //   //   },
+  //   // ];
+  // },
 };
 

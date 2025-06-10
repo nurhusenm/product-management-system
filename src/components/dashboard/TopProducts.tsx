@@ -18,7 +18,7 @@ export function TopProducts({ products, loading = false }: TopProductsProps) {
   if (loading) {
     return (
       <Card className="p-6">
-        <div className="mb-4 h-6 w-48 animate-pulse rounded bg-muted" />
+        <div className="mb-4 h-6 w-48 animate-pulse rounded bg-muted text-black" />
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-12 animate-pulse rounded bg-muted" />
@@ -30,7 +30,7 @@ export function TopProducts({ products, loading = false }: TopProductsProps) {
 
   return (
     <Card className="p-6">
-      <h3 className="mb-4 text-lg font-semibold">Top Selling Products</h3>
+      <h3 className="mb-4 text-lg font-semibold text-black">Top Selling Products</h3>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>

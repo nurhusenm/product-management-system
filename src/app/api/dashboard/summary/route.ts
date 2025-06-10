@@ -2,27 +2,30 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Transaction from '@/models/Transaction';
 import Product from '@/models/product';
+import jwt from 'jsonwebtoken';
 
-// Mock data for development
-const mockSummary = {
-  salesToday: 1250.75,
-  purchasesToday: 850.25,
-  profitToday: 400.5,
-  inventoryWorth: 15000,
-  lowStockCount: 5,
-};
-
-export async function GET() {
+export async function GET(request: any) {
   try {
     await connectToDatabase();
+
+    // Verify JWT token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const tenantId = decoded.tenantId; // Adjust based on your JWT payload
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get today's sales and purchases
+    // Get today's sales and purchases for this tenant
     const [salesToday, purchasesToday] = await Promise.all([
       Transaction.aggregate([
         {
           $match: {
+            tenantId, // Filter by tenant
             type: 'sale',
             date: { $gte: today },
           },
@@ -37,6 +40,7 @@ export async function GET() {
       Transaction.aggregate([
         {
           $match: {
+            tenantId, // Filter by tenant
             type: 'purchase',
             date: { $gte: today },
           },
@@ -50,9 +54,10 @@ export async function GET() {
       ]),
     ]);
 
-    // Calculate inventory worth and low stock count
+    // Calculate inventory worth and low stock count for this tenant
     const [inventoryStats, lowStockCount] = await Promise.all([
       Product.aggregate([
+        { $match: { tenantId } }, // Filter by tenant
         {
           $group: {
             _id: null,
@@ -61,7 +66,8 @@ export async function GET() {
         },
       ]),
       Product.countDocuments({
-        quantity: { $lt: 10 }, // Assuming 10 is the low stock threshold
+        tenantId, // Filter by tenant
+        quantity: { $lt: 10 }, // Low stock threshold
       }),
     ]);
 
@@ -78,6 +84,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Dashboard summary error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-} 
+}
