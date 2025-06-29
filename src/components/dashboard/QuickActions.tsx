@@ -12,7 +12,7 @@ interface QuickAction {
 const quickActions: QuickAction[] = [
   {
     label: 'Add Product',
-    href: '/products/new',
+    href: '/products',
     icon: <Plus className="h-5 w-5" />,
     description: 'Add a new product to inventory',
   },
@@ -39,19 +39,20 @@ const quickActions: QuickAction[] = [
 export function QuickActions() {
   return (
     <Card className="p-6">
-      <h3 className="mb-4 text-lg font-semibold">Quick Actions</h3>
+      <h3 className="mb-4 text-lg font-semibold text-black">Quick Actions</h3>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {quickActions.map((action) => (
           <Link
             key={action.href}
             href={action.href}
-            className="group relative flex flex-col items-center rounded-lg border p-4 text-center transition-colors hover:bg-muted/50"
+            className="group relative flex flex-col items-center rounded-lg border p-4 text-center transition-colors hover:bg-muted/50 text-black"
           >
-            <div className="mb-2 rounded-full bg-primary/10 p-2 text-primary transition-colors group-hover:bg-primary/20">
+            <div className="mb-2 rounded-full bg-primary/10 p-2 text-primary transition-colors group-hover:bg-primary/20 text-gray-500 ">
+
               {action.icon}
             </div>
-            <h4 className="font-medium">{action.label}</h4>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <h4 className="font-medium text-black">{action.label}</h4>
+            <p className="mt-1 text-sm text-muted-foreground text-black">
               {action.description}
             </p>
           </Link>

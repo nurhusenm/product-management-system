@@ -35,10 +35,10 @@ export function TopProducts({ products, loading = false }: TopProductsProps) {
         <table className="w-full">
           <thead>
             <tr className="border-b text-left text-sm text-muted-foreground">
-              <th className="pb-3 font-medium">Product</th>
-              <th className="pb-3 font-medium">Quantity Sold</th>
-              <th className="pb-3 font-medium">Revenue</th>
-              <th className="pb-3 font-medium">Trend</th>
+              <th className="pb-3 font-medium text-black">Product</th>
+              <th className="pb-3 font-medium text-black">Quantity Sold</th>
+              <th className="pb-3 font-medium text-black">Revenue</th>
+              <th className="pb-3 font-medium text-black">Trend</th>
             </tr>
           </thead>
           <tbody>
@@ -47,9 +47,9 @@ export function TopProducts({ products, loading = false }: TopProductsProps) {
                 key={product.id}
                 className="border-b text-sm last:border-0"
               >
-                <td className="py-3 font-medium">{product.name}</td>
-                <td className="py-3">{product.quantitySold}</td>
-                <td className="py-3">
+                <td className="py-3 font-medium text-black">{product.name}</td>
+                <td className="py-3 text-black">{product.quantitySold}</td>
+                <td className="py-3 text-black">
                   {new Intl.NumberFormat('en-US', {
                     style: 'currency',
                     currency: 'USD',

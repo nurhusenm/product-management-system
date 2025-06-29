@@ -14,7 +14,19 @@ export default async function connectToDatabase() {
   }
 
   try {
-    await mongoose.connect(MONGODB_URI);
+    await mongoose.connect(MONGODB_URI, {
+      // Connection options to prevent timeouts
+      serverSelectionTimeoutMS: 30000, // Timeout after 30s
+      socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+      bufferCommands: false, // Disable mongoose buffering
+      maxPoolSize: 10, // Maintain up to 10 socket connections
+      minPoolSize: 1, // Maintain at least 1 socket connection
+      maxIdleTimeMS: 30000, // Close idle connections after 30s
+      connectTimeoutMS: 30000, // Give up initial connection after 30s
+      retryWrites: true,
+      w: 'majority'
+    });
+    
     isConnected = true;
     console.log("Connected to MongoDB");
     console.log('mongodb url', MONGODB_URI);

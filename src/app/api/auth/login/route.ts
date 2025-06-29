@@ -6,7 +6,10 @@ import jwt from "jsonwebtoken";
 
 export async function POST(request: Request) {
   try {
+    console.log("Attempting to connect to database...");
     await connectToDatabase();
+    console.log("Database connection successful, processing login...");
+    
     const { email, password } = await request.json();
 
     if (!email || !password) {
@@ -15,6 +18,8 @@ export async function POST(request: Request) {
 
     // Normalize email for case-insensitive lookup
     const normalizedEmail = email.toLowerCase();
+    console.log("Looking up user with email:", normalizedEmail);
+    
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
@@ -39,6 +44,21 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Login error:", error);
+    
+    // More specific error handling
+    if (error instanceof Error) {
+      if (error.message.includes('buffering timed out')) {
+        return NextResponse.json({ 
+          error: "Database operation timed out. Please try again." 
+        }, { status: 503 });
+      }
+      if (error.message.includes('Failed to connect to MongoDB')) {
+        return NextResponse.json({ 
+          error: "Database connection failed. Please try again later." 
+        }, { status: 503 });
+      }
+    }
+    
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
