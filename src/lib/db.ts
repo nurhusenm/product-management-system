@@ -9,8 +9,8 @@ if (!MONGODB_URI) {
 let isConnected: boolean = false; // Track connection status
 
 export default async function connectToDatabase() {
-  if (isConnected) {
-    return; // Already connected
+  if (isConnected && mongoose.connection.readyState === 1) {
+    return; // Already connected and ready
   }
 
   try {
@@ -18,7 +18,7 @@ export default async function connectToDatabase() {
       // Connection options to prevent timeouts
       serverSelectionTimeoutMS: 30000, // Timeout after 30s
       socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
-      bufferCommands: false, // Disable mongoose buffering
+      bufferCommands: true, // Enable buffering to prevent connection issues
       maxPoolSize: 10, // Maintain up to 10 socket connections
       minPoolSize: 1, // Maintain at least 1 socket connection
       maxIdleTimeMS: 30000, // Close idle connections after 30s
